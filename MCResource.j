@@ -40,7 +40,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 /*
  *	MCResource
- * 
+ *
  *  This is where the magic happens. Syntax and methods are strongly inspired by ActiveRecord, part of Ruby on Rails, (c) 37signals
  *	The most notable difference is, this class does not support synchronous requesting, so EVERY request must be made with separate
  *  requesting and processing parts. It will usually work with a delegate callback.
@@ -50,8 +50,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 @implementation MCResource : CPObject
 {
 	// Common attributes that every record has
-	CPDate			createdAt;
-	CPDate			updatedAt;
+	CPDate			createdAt	@accessors(readonly);
+	CPDate			updatedAt	@accessors(readonly);
 
 	// Internal attributes - all of these MUST begin with an underscore to avoid conflicts with model attribute names!
 	CPDictionary	_changes;
@@ -59,14 +59,14 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	CPString		_identifier;
 	CPDictionary	_associations;
 	CPDictionary    _errors;
-	
+
 	MCAssociation   _reflection;
-	
+
 	CPDictionary	_instanceMethodDelegateDictionary;
 	CPDictionary	_instanceMethodSelectorDictionary;
-	
+
 	CPURL           _resourceURL;
-	
+
 	BOOL            _isReloading;
 }
 
@@ -96,7 +96,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 + (void)hasUniqueAttribute:(CPString)attributeName
 {
     var uniqueAttributes = [classUniqueAttributesDictionary objectForKey:[self className]];
-    
+
     if(!uniqueAttributes)
     {
         [classUniqueAttributesDictionary setObject:[attributeName] forKey:[self className]];
@@ -143,7 +143,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 + (void)addAssociationWithName:(CPString)aName class:(Class)associationClass options:(CPDictionary)options
 {
     var associatedObjectClass, autosave, shallow, isNestedOnly, sortDescriptors;
-    
+
     if(!options || !(associatedObjectClass = [options objectForKey:MCResourceAssociationObjectClassKey]))
     {
         if(associationClass === MCHasManyAssociation)
@@ -151,32 +151,32 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
         else
             associatedObjectClass = objj_getClass([aName cappifiedClass]);
     }
-    
+
     if(!options || !(sortDescriptors = [options objectForKey:MCResourceAssociationSortDescriptorsKey]))
     {
         sortDescriptors = [];
     }
-    
+
     if(!associatedObjectClass)
 	{
 	    CPLog.error(@"Could not find class '" + [aName cappifiedClass] + "' for association in object " + [self className]);
 	}
-    
+
     if(!options || !(autosave = [options objectForKey:MCResourceAssociationAutosaveKey]))
     {
         autosave = NO;
     }
-    
+
     if(!options || !(shallow = [options objectForKey:MCResourceAssociationShallowKey]))
     {
         shallow = NO;
     }
-    
+
     if(!options || !(isNestedOnly = [options objectForKey:MCResourceAssociationNestedOnlyKey]))
     {
         isNestedOnly = NO;
     }
-        
+
 	// Add the association to the class ivars
 	// Just as if you had typed "MCHas(One|Many)Association <name>" in the class declaration
 	class_addIvar(self, aName, [associationClass className]);
@@ -186,20 +186,20 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	{
 		[classAssociationsDictionary setObject:[CPDictionary dictionary] forKey:[self className]];
 	}
-	
-	var optionsDictionary = [CPDictionary dictionaryWithObjects:[associationClass, 
-	                                                             associatedObjectClass, 
-	                                                             autosave, 
-	                                                             shallow, 
-	                                                             isNestedOnly, 
+
+	var optionsDictionary = [CPDictionary dictionaryWithObjects:[associationClass,
+	                                                             associatedObjectClass,
+	                                                             autosave,
+	                                                             shallow,
+	                                                             isNestedOnly,
 	                                                             sortDescriptors]
-	                                                    forKeys:[MCResourceAssociationClassKey, 
+	                                                    forKeys:[MCResourceAssociationClassKey,
 	                                                             MCResourceAssociationObjectClassKey,
-	                                                             MCResourceAssociationAutosaveKey, 
-	                                                             MCResourceAssociationShallowKey, 
-	                                                             MCResourceAssociationNestedOnlyKey, 
+	                                                             MCResourceAssociationAutosaveKey,
+	                                                             MCResourceAssociationShallowKey,
+	                                                             MCResourceAssociationNestedOnlyKey,
 	                                                             MCResourceAssociationSortDescriptorsKey]];
-	
+
 	[[classAssociationsDictionary objectForKey:[self className]] setObject:optionsDictionary forKey:aName];
 }
 
@@ -210,10 +210,10 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     var copy = [[[self class] alloc] init];
     [copy setAttributes:[self attributes]];
-    
+
     // Strip identifier from the copy
     [copy _setValue:nil forKey:@"identifier"];
-    
+
     return copy;
 }
 
@@ -223,33 +223,33 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     var aClass = [self class];
     var clone = [[aClass alloc] init];
     var attributeNames = [[[clone class] attributes] allKeys];
-        
+
     while([aClass superclass])
 	{
 	    // clone ivars
         var ivarList = class_copyIvarList(aClass);
         var ivarCount = [ivarList count];
-    
+
         while(ivarCount--)
         {
             var ivarName = [ivarList objectAtIndex:ivarCount].name;
             clone[ivarName] = self[ivarName];
         }
-    
+
         aClass = [aClass superclass];
     }
 
     // Set attribute changes
     var attributes = [[[self class] attributes] allKeys],
         attributeCount = [attributes count];
-        
+
     while(attributeCount--)
     {
         [[clone changes] setValue:@"" forKey:[attributes objectAtIndex:attributeCount]];
     }
 
     [clone commit];
-    
+
     return clone;
 }
 
@@ -267,7 +267,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		_associations = [CPDictionary dictionary];
 		_errors = [CPDictionary dictionary];
 
-		// Setup associations		
+		// Setup associations
 		var associationNames = [[classAssociationsDictionary objectForKey:[self className]] allKeys];
 
 		for(var i = 0; i < [associationNames count]; i++)
@@ -293,13 +293,13 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 			[_associations setObject:association forKey:associationName];
 			[self _setValue:association forKey:associationName];
-			
+
             // Add a method to get the association
             class_addMethod(self.isa, sel_getUid(associationName), function(self, _cmd)
             {
                 return self[_cmd];
             },["id"]);
-            
+
             // FIXME: Add a proxy method to set the association
             // class_addMethod(self.isa, sel_getUid("set" + associationName + ":"), function(self, _cmd, anObject)
             // {
@@ -309,12 +309,12 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
             //     }
             //     else
             //     {
-            //         [association setAssociatedObject:anObject];                    
+            //         [association setAssociatedObject:anObject];
             //     }
             // },["", "id"]);
-		}		
+		}
 	}
-	
+
 	return self;
 }
 
@@ -324,14 +324,14 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	var description = [self className] + ", ID " + [self identifier] + ": { \n",
 		attributes = [[[self class] attributes] keyEnumerator],
 		attribute;
-	
+
 	while(attribute = [attributes nextObject])
 	{
 		description += "\t " + attribute + " = '" + [self valueForKey:attribute] + "'\n";
 	}
-	
+
 	description += "};";
-	
+
 	return description;
 }
 
@@ -354,10 +354,10 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 }
 
 // Find associated records under the URL of the parent record
-+ (void)findAsAssociated:(CPDictionary)params withDelegate:(id)aDelegate andSelector:(SEL)aSelector parent:(MCResource)parent 
++ (void)findAsAssociated:(CPDictionary)params withDelegate:(id)aDelegate andSelector:(SEL)aSelector parent:(MCResource)parent
 {
     resourceURL = [parent resourceURL] + '/' + [self _constructResourceURL];
-    [self find:params withDelegate:aDelegate andSelector:aSelector resourceURL:resourceURL];    
+    [self find:params withDelegate:aDelegate andSelector:aSelector resourceURL:resourceURL];
 }
 
 // Find a record on the server with the given params
@@ -373,16 +373,16 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	{
 		resourceURL += [CPString parameterStringFromDictionary:params];
 	}
-	
+
     // Construct a request
 	var target = [CPURL URLWithString:resourceURL],
 		request = [MCHTTPRequest requestTarget:target withMethod:@"GET" andDelegate:self],
 		queuedRequest = [MCQueuedRequest queuedRequestWithRequest:request];
-	
+
 	// Register the callback in our file-scoped callback dictionary
 	[classMethodDelegateDictionary setObject:aDelegate forKey:queuedRequest];
 	[classMethodSelectorDictionary setObject:aSelector forKey:queuedRequest];
-	
+
 	// Append the wrapped request to the queue
 	[[MCQueue sharedQueue] appendRequest:queuedRequest];
 }
@@ -397,27 +397,27 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     // Commit uncommitted changed
     [self commit];
-    
+
     // Build a save request
 	var masterRequest = [self _buildSaveRequest];
-	
+
 	// If there's nothing to save, consider it a success and call the delegate's selector
 	if(!masterRequest)
 	{
 	    if(aDelegate && aSelector && startImmediately)
 	        [aDelegate performSelector:aSelector withObject:self];
-	        
+
 	    return nil;
 	}
 
 	// Register the callback in our instance's callback dictionary
 	[_instanceMethodDelegateDictionary setObject:aDelegate forKey:masterRequest];
 	[_instanceMethodSelectorDictionary setObject:aSelector forKey:masterRequest];
-	
+
 	// Append the wrapped request to the queue if appropriate
 	if(startImmediately)
 	    [[MCQueue sharedQueue] appendRequest:masterRequest];
-	
+
 	return masterRequest;
 }
 
@@ -426,13 +426,13 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
 	// Construct the reload request
 	var request = [self _buildReloadRequest];
-	
+
 	// Register a didReload: callback
 	[_instanceMethodDelegateDictionary setObject:aDelegate forKey:request];
 	[_instanceMethodSelectorDictionary setObject:aSelector forKey:request];
-	
+
 	_isReloading = YES;
-	
+
 	// Append the wrapped request to the queue
 	[[MCQueue sharedQueue] appendRequest:request];
 }
@@ -449,15 +449,15 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	var target = [CPURL URLWithString:[self resourceURL]],
 		request = [MCHTTPRequest requestTarget:target withMethod:@"DELETE" andDelegate:self],
 		queuedRequest = [MCQueuedRequest queuedRequestWithRequest:request];
-		
+
 	// Register a didReload: callback
 	[_instanceMethodDelegateDictionary setObject:aDelegate forKey:queuedRequest];
 	[_instanceMethodSelectorDictionary setObject:aSelector forKey:queuedRequest];
-	
+
 	// Append the wrapped request to the queue if appropriate
 	if(startImmediately)
 	    [[MCQueue sharedQueue] appendRequest:queuedRequest];
-	    
+
 	return queuedRequest;
 }
 
@@ -478,15 +478,15 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
         CPLog.warn(@"Re-set identifier on %@", self);
         return;
     }
-    
+
     if(isNaN(identifier))
     {
         [CPException raise:CPInvalidArgumentException reason:@"Identifier must be a number but was " + identifier + " (" + typeof identifier + ")" + " (Object: " + self + ")"];
         return;
     }
-    
+
 	_identifier = identifier;
-	
+
 	// Take care of registering the product in our global AllResourcesByTypeAndId dictionary
 	var resourcesByType = [AllResourcesByTypeAndId objectForKey:[self className]];
 
@@ -517,13 +517,13 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		{
 			continue;
 		}
-		
+
 		[returnedDictionary setObject:[self valueForKey:attribute] forKey:[attribute railsifiedString]];
 	}
-	
+
 	// Wrap the attributes under another root dictionary with the class name
 	var wrappedDictionary = [CPDictionary dictionaryWithObject:returnedDictionary forKey:[[self className] railsifiedString]];
-	
+
 	return wrappedDictionary;
 }
 
@@ -562,12 +562,12 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     var changedKeys = [_changes keyEnumerator],
         changedKey;
-        
+
     while(changedKey = [changedKeys nextObject])
     {
         [self _setValue:[_changes objectForKey:changedKey] forKey:changedKey];
     }
-    
+
     [_changes removeAllObjects];
 }
 
@@ -577,38 +577,38 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     var returnedDictionary = [CPDictionary dictionary],
         changedKeys = [_changesForRemote keyEnumerator],
         changedKey;
-    
+
     while(changedKey = [changedKeys nextObject])
     {
         var changedValue = [self valueForKey:changedKey];
-        
+
         // Set empty values correctly
         if((!changedValue && !(changedValue === NO) && !(changedValue === 0)) || changedValue === "")
         {
             changedValue = [CPNull null];
         }
-        
+
         if(changedValue.isa && ![changedValue isKindOfClass:[MCResource class]])
         {
             // Set compound values correctly (convert them to dictionaries)
             if([changedValue respondsToSelector:@selector(attributes)])
             {
-                changedValue = [changedValue attributes];                
+                changedValue = [changedValue attributes];
             }
         }
-        
+
         [returnedDictionary setObject:changedValue forKey:[changedKey railsifiedString]];
     }
-    
-    // Don't return a dictionary if there's nothing to save    
+
+    // Don't return a dictionary if there's nothing to save
     if([[returnedDictionary allKeys] count] === 0)
     {
         return nil;
     }
-    
+
     // Wrap the attributes under another root dictionary with the class name
 	var wrappedDictionary = [CPDictionary dictionaryWithObject:returnedDictionary forKey:[[self class] railsName]];
-	
+
 	return wrappedDictionary;
 }
 
@@ -661,14 +661,14 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 				    }
 				    else
 				    {
-					    [self _setValue:[CPDate dateWithDateTimeString:aValue] forKey:attributeName];				        
+					    [self _setValue:[CPDate dateWithDateTimeString:aValue] forKey:attributeName];
 				    }
 					break;
 				case "CPNumber":
 				    var parsedValue = parseFloat(aValue);
 				    if(!isNaN(parsedValue))
 				    {
-					    [self _setValue:parsedValue forKey:attributeName];				        
+					    [self _setValue:parsedValue forKey:attributeName];
 				    }
 					break;
 				case "BOOL":
@@ -688,7 +688,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
                             var theHasManyAssociation = [_associations objectForKey:attributeName],
                                 childObjectDataEnumerator = [aValue objectEnumerator],
                                 childObjectData;
-                            
+
                             while(childObjectData = [childObjectDataEnumerator nextObject])
                             {
                                 var childObj = [childClass new];
@@ -699,8 +699,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 					    else
 					    {
 							var childObj = [childClass new];
-							[childObj setAttributes:[CPDictionary dictionaryWithObject:aValue forKey:[[childClass className] railsifiedString]]];	
-							
+							[childObj setAttributes:[CPDictionary dictionaryWithObject:aValue forKey:[[childClass className] railsifiedString]]];
+
 							// Send out KVO-notifications for association object changes
 							[self willChangeValueForKey:attributeName];
 							[[_associations objectForKey:attributeName] setAssociatedObject:childObj];
@@ -710,13 +710,13 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 					else if((childClass = objj_getClass(attributeType)) || (childClass = objj_getClass([attributeName cappifiedClass])))
 					{
 						var childObj = [childClass new];
-						
+
 						if([aValue isKindOfClass:[CPDictionary class]])
 						{
 							var childAttributeEnumerator = [aValue keyEnumerator],
 								childAttributeName;
-								
-							// FIXME: Refactor in the future to get ivar class-based parsing for child objects	
+
+							// FIXME: Refactor in the future to get ivar class-based parsing for child objects
 							while(childAttributeName = [childAttributeEnumerator nextObject])
 							{
 							    var value = [aValue objectForKey:childAttributeName],
@@ -724,12 +724,12 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
             				    if(!isNaN(parsedValue))
             				    {
-            				        value = [CPNumber numberWithFloat:parsedValue];            				        
+            				        value = [CPNumber numberWithFloat:parsedValue];
             				    }
-							    
+
 								[childObj setValue:value forKey:[childAttributeName cappifiedString]];
 							}
-							
+
 							// Use the KVO-notifying version of setValue:forKey: here to
 							// enable binding to child objects even if they are not
 							// associations.
@@ -743,20 +743,20 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 						}
 						else
 						{
-						    console.log("Class: " + aValue + " " + [aValue className]);
+						    console.log("Klass: " + aValue + " " + [aValue className]);
 							CPLog.warn(@"Don't know how to parse objects of class " + [attributeName cappifiedClass] + ". Only dictionary parsing into custom objects is supported.");
 						}
 					}
 					else
 					{
-						CPLog.warn(@"Unknown type for attribute " + [attributeName cappifiedClass] + " in class " + [self class] + " (could not find class named " + [attributeName cappifiedClass] + " or " + attributeType + ")");						
+						CPLog.warn(@"Unknown type for attribute " + [attributeName cappifiedClass] + " in class " + [self class] + " (could not find class named " + [attributeName cappifiedClass] + " or " + attributeType + ")");
 					}
 					break;
 			}
 		}
 		else
 		{
-		//	CPLog.warn("Could not parse attribute: " + attributeName + " into class " + [self class]);
+			CPLog.warn("Could not parse attribute: " + attributeName + " into class " + [self class]);
 		}
 	}
 }
@@ -772,7 +772,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 // Override in child classes. Will be executed right after resource was fetched from server with its attributes already set.
 - (void)resourceDidLoad
 {
-    
+
 }
 
 #pragma mark -
@@ -781,17 +781,17 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 + (void)validate:(CPString)field with:(MCValidation)aValidation
 {
     var classValidations = [classValidationsDictionary objectForKey:[self className]];
-    
+
     if(!classValidations)
     {
         [classValidationsDictionary setObject:[CPDictionary dictionary] forKey:[self className]];
     }
-    
+
     var fieldValidations = [classValidations objectForKey:field];
-    
+
     if(!fieldValidations)
     {
-        [[classValidationsDictionary objectForKey:[self className]] setObject:[aValidation] forKey:field];        
+        [[classValidationsDictionary objectForKey:[self className]] setObject:[aValidation] forKey:field];
     }
     else
     {
@@ -803,12 +803,12 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     var classValidations = [classValidationsDictionary objectForKey:[self className]];
     var _hasError = NO;
-    
+
     if(!classValidations)
         return YES;
-        
+
     [_errors removeAllObjects];
-    
+
     var validatedFieldEnumerator = [classValidations keyEnumerator],
         validatedField;
 
@@ -817,33 +817,33 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
         var validations = [classValidations objectForKey:validatedField],
             validationEnumerator = [validations objectEnumerator],
             validation;
-            
+
         while(validation = [validationEnumerator nextObject])
         {
 //            console.log("Checking: " + validatedField + " value: " + [[self valueForKeyPath:validatedField] description]);
             var error = [validation errorForValue:[self valueForKeyPath:validatedField]];
-            
+
             if(error)
             {
                 _hasError = YES;
-                
+
                 if(![_errors objectForKey:validatedField])
                 {
                     [_errors setObject:[CPArray array] forKey:validatedField];
                 }
 
-                [[_errors objectForKey:validatedField] addObject:error];                    
+                [[_errors objectForKey:validatedField] addObject:error];
             }
         }
     }
-    
+
     if(!_hasError)
     {
         [_errors removeAllObjects];
     }
-    
+
     // console.log("Checked " + [self objjDescription] + " - errors: " + [_errors description]);
-    
+
     return !_hasError;
 }
 
@@ -866,16 +866,16 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     {
         return @"";
     }
-    
+
     var errorKeyEnumerator = [errors keyEnumerator],
         errorKey,
         errorString = @"";
-        
+
     while(errorKey = [errorKeyEnumerator nextObject])
     {
         errorString += [CPString stringWithFormat:@"• %@ %@\n", errorKey, [errors objectForKey:errorKey]];
     }
-    
+
     return errorString;
 }
 
@@ -893,28 +893,28 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     var target = [CPURL URLWithString:[self resourceURL]],
 		request = [MCHTTPRequest requestTarget:target withMethod:@"GET" andDelegate:self],
 		queuedRequest = [MCQueuedRequest queuedRequestWithRequest:request];
-	
+
 	// Construct association reload requests
 	var associationNames = [_associations keyEnumerator],
 	    associationName;
-	    
+
 	while(associationName = [associationNames nextObject])
 	{
 	    var association = [_associations objectForKey:associationName],
 		    associationOptions = [[classAssociationsDictionary objectForKey:[self className]] objectForKey:associationName];
-		    
+
 		// Skip associations that cannot be loaded seperately
 		if([associationOptions valueForKey:MCResourceAssociationNestedOnlyKey] === YES)
 		{
 		    continue;
 		}
-		
+
 	    var subRequest = [association _buildLoadRequest];
-	        
+
 	    if(subRequest)
 	        [queuedRequest addChildRequest:subRequest];
 	}
-		
+
     return queuedRequest;
 }
 
@@ -932,19 +932,19 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 	// Pass in the model's data for saving
 	var savedAttributes = [self attributesForSave];
-	
+
 	// Don't need to save when nothing has changed and the record previously existed
 	if([self identifier] && !savedAttributes)
 	    return nil;
 
 	[request setData:savedAttributes];
-	
+
 	var queuedRequest = [MCQueuedRequest queuedRequestWithRequest:request];
-	
+
 	// Append association save requests
 	var associationEnumerator = [_associations objectEnumerator],
 		association;
-		
+
 	while(association = [associationEnumerator nextObject])
 	{
 	    if([association autosaves])
@@ -952,7 +952,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	        if([association isKindOfClass:[MCHasOneAssociation class]])
 	        {
         		var associationSaveRequest = [association _buildSaveRequest];
-        		[queuedRequest addChildRequest:associationSaveRequest];	            
+        		[queuedRequest addChildRequest:associationSaveRequest];
 	        }
             else
             {
@@ -961,7 +961,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
             }
 	    }
 	}
-	
+
 	// Return a queuedRequest with sub-requests for associations
 	return queuedRequest;
 }
@@ -989,7 +989,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 - (void)setValue:(id)someValue forKey:(CPString)key
 {
     var oldValue = [self valueForKey:key];
-    
+
 	// Remember the PREVIOUS value if it's an attribute
 	if(![_changes objectForKey:key] && ((!oldValue && someValue) || (oldValue && oldValue !== someValue && ![oldValue isEqual:someValue])) && [[[self class] attributes] containsKey:key])
     {
@@ -998,7 +998,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 		[_changes setObject:oldValue forKey:key];
 	}
-	
+
 	// and set the new value
 	[super setValue:someValue forKey:key];
 }
@@ -1016,9 +1016,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
         // FIXME
         // Until CPFormatter support is properly integrated, we need to catch these here and
         // add them to our change dictionary
-        // Suppose we bind a CPPopUpButton to: object.price.taxRate – without a formatter, 
+        // Suppose we bind a CPPopUpButton to: object.price.taxRate – without a formatter,
         // there's no way to manipulate the entire object and set it back here
-        
+
         // Still, this is far from a perfect solution
         var keys = keyPath.split('.'),
             ourKey = keys[0],
@@ -1077,7 +1077,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     if(_resourceURL)
     {
-       return _resourceURL; 
+       return _resourceURL;
     }
 
     // If we're part of an association, try to build resource URL according to that
@@ -1091,37 +1091,37 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	{
 	    prefix = MCResourceServerURLPrefix + "/";
 	}
-	
+
 	_resourceURL = prefix + [self _constructResourceURL];
-		
+
 	return _resourceURL;
 }
 
 + (CPString)_constructResourceURL
 {
     var resourceName;
-	
+
 	if(![[self class] isSingletonResource])
 	{
 		resourceName = [[[self className] pluralize] railsifiedString];
 	}
 	else
 	{
-		resourceName = [[self className] railsifiedString];	
+		resourceName = [[self className] railsifiedString];
 	}
-	
-	return resourceName; 
+
+	return resourceName;
 }
 
 - (CPString)_constructResourceURL
 {
 	var URL = [[self class] _constructResourceURL];
-    
+
     if(![[self class] isSingletonResource] && _identifier)
     {
 	    URL += "/" + _identifier;
     }
-        
+
     return URL;
 }
 
@@ -1133,10 +1133,10 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	{
 		return [classAttributesDictionary objectForKey:[self className]];
 	}
-	
+
 	var aClass		= [self class],
 		attributes 	= [CPDictionary dictionary];
-			
+
 	// Account for MCResource class inheritance
 	while([aClass isKindOfClass:[MCResource class]] || [[aClass superclass] isKindOfClass:[MCResource class]])
 	{
@@ -1145,19 +1145,19 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		for(var i = 0; i < [classAttributes count]; i++)
 		{
 			var attribute = [classAttributes objectAtIndex:i];
-		
+
 			// Skip internal attributes (everything starting with an underscore)
 			if(attribute.name.match('^_'))
 			{
-				continue;				
+				continue;
 			}
-			
+
 			[attributes setObject:attribute.type forKey:attribute.name];
 		}
-	
+
 		aClass = [aClass superclass];
 	}
-	
+
 	[classAttributesDictionary setObject:attributes forKey:[self className]];
 
 	return attributes;
@@ -1180,20 +1180,20 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 {
     var delegate = [classMethodDelegateDictionary objectForKey:aRequest],
 		selector = [classMethodSelectorDictionary objectForKey:aRequest];
-	
+
 	[self _parseObjectsFromArray:input intoArray:output withDelegate:delegate andSelector:selector];
 }
 
 + (void)_parseObjectsFromArray:(CPArray)input intoArray:(CPArray)output withDelegate:(id)aDelegate andSelector:(SEL)aSelector
 {
 	var startTime = new Date().getTime();
-		
+
 	for(var i = [output count]; i < [input count]; i++)
 	{
 		var childObj = [self _buildResourceFromAttributes:[input objectAtIndex:i]];
 		[childObj resourceDidLoad];
 		[output addObject:childObj];
-		
+
 		// Every 100 ms
 		if((new Date().getTime() - startTime) > 100)
 		{
@@ -1226,7 +1226,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	// Benchmarking
 	var startTime = new Date().getTime();
 	var responseData = [[aRequest HTTPRequest] responseData];
-	
+
 	// Check if we have been given one or multiple objects and act accordingly
 	if([responseData isKindOfClass:[CPArray class]])
 	{
@@ -1255,9 +1255,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		selector = [_instanceMethodSelectorDictionary objectForKey:aRequest],
 		requestMethod = [[aRequest HTTPRequest] HTTPMethod],
 		delegateObject;
-		
+
 	_isReloading = NO;
-	
+
 	// Determine whether it was a save/reload request or a delete request
 	switch(requestMethod)
 	{
@@ -1275,7 +1275,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 			// Incorporate the received data into this resource
 			[self setAttributes:[[aRequest HTTPRequest] responseData]];
 			delegateObject = self;
-            
+
             // Expand the resource's URL if appropriate
 			if(requestMethod == "POST" && [self identifier] && _resourceURL && ![[self class] isSingletonResource])
 			{
@@ -1316,7 +1316,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     	{
 		    [aDelegate performSelector:aSelector withObject:nil];
     	}
-    }	
+    }
 }
 
 // Let's hope this doesn't get called to often ;)
@@ -1340,7 +1340,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     		[aDelegate performSelector:aSelector withObject:self];
     	}
     }
-        
+
 	CPLog.debug(@"MCResource-requestDidFail: " + [aRequest description] + ": " + [[aRequest HTTPRequest] error]);
 }
 
@@ -1357,7 +1357,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
         [alert setDelegate:self];
         [alert beginSheetModalForWindow:[CPApp mainWindow]];
 
-        _MCResourceErrorAlertIsShowing = YES;            
+        _MCResourceErrorAlertIsShowing = YES;
     }
 }
 
@@ -1379,7 +1379,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	var userAndPassword = CFData.decodeBase64ToString(encoded).match(/(([^:]+):(.+))/);
 	var password = userAndPassword.pop();
 	var username = userAndPassword.pop();
-	
+
 	return {username: username, password: password};
 }
 
