@@ -28,23 +28,23 @@
  *  	},
  *  	"id": 3
  *  } };
- * 
+ *
  * // Construct a request
  * var saveRequest = [MCHTTPRequest requestTarget:[CPURL URLWithString:@"/orders/123"]
  *  									withMethod:@"PUT"
  *    								   andDelegate:self];
- * 
+ *
  * // Convert our test values to a CPDictionary
  * var testCPDict = [CPDictionary dictionaryWithJSObject:testDict recursively:YES];
- *  
- * // Set data to be transmitted 
+ *
+ * // Set data to be transmitted
  * [saveRequest setData:testCPDict];
- * 
+ *
  * // And finally, start the request
  * [saveRequest start];
  *
  */
- 
+
 // File-scoped variables -- class variables
 var MCHTTPRequestDelegate = nil;
 var MCHTTPRequestDelegateRespondsToAuthorizationCredentials = NO;
@@ -77,7 +77,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 + (void)setDelegate:(id)aDelegate
 {
 	MCHTTPRequestDelegate = aDelegate;
-	
+
 	if([aDelegate respondsToSelector:@selector(authorizationCredentials)])
 	{
 		MCHTTPRequestDelegateRespondsToAuthorizationCredentials = YES;
@@ -104,7 +104,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 	[aRequest setDelegate:aDelegate];
 	[aRequest setURL:aTarget];
 	[aRequest setHTTPMethod:aMethod];
-	
+
 	return aRequest;
 }
 
@@ -116,7 +116,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 		// Set default values
 		dataTransformer = MCHTTPRequestCachedDefaultTransformer;
 		HTTPMethod = @"GET";
-		
+
 		// Set default headers
 		_HTTPHeaderFields = [CPDictionary dictionary];
 
@@ -130,8 +130,8 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 	    [_HTTPHeaderFields setValue:"no-cache" forKey:"Cache-Control"];
 	    [_HTTPHeaderFields setValue:"XMLHttpRequest" forKey:"X-Requested-With"];
 
-		// Add authorization credentials if 
-		// a) they were specified through setAuthorizationCredentials: 
+		// Add authorization credentials if
+		// a) they were specified through setAuthorizationCredentials:
 		// b) none were specified but the class delegate can supply them.
 		if(authorizationCredentials)
 		{
@@ -139,10 +139,10 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 		}
 		else if(MCHTTPRequestDelegateRespondsToAuthorizationCredentials)
 		{
-			[_HTTPHeaderFields setValue:[[[self class] delegate] authorizationCredentials] forKey:@"Authorization"];		
+			[_HTTPHeaderFields setValue:[[[self class] delegate] authorizationCredentials] forKey:@"Authorization"];
 		}
 	}
-		
+
 	return self;
 }
 
@@ -164,7 +164,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 {
 	// Conserve memory
 	delete _formData;
-	
+
 	// Build new formData
 	_formData = [dataTransformer transformedData:someData];
 }
@@ -174,7 +174,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 {
     if(!_formData)
         _formData = new FormData();
-	
+
 	_formData.append(aKey, value);
 }
 
@@ -198,13 +198,13 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 {
 	if(HTTPMethod === aMethod)
 		return;
-		
+
 	// Make sure the given method is valid
 	if(!aMethod || !aMethod.match(/(put|get|delete|post)/i))
 	{
-		throw [MCError errorWithDescription:@"Unknown HTTP request method: '" + aMethod + "'"]; 
+		throw [MCError errorWithDescription:@"Unknown HTTP request method: '" + aMethod + "'"];
 	}
-	
+
 	HTTPMethod = aMethod;
 }
 
@@ -231,15 +231,17 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 //
 - (BOOL)start
 {
+	CPLog.trace("MCHTTPRequest.start");
+
 	if(_connection)
 	{
 		CPLog.warn("Connection has already started");
 		return YES;
 	}
-	
+
 	error = nil;
 	_connection = [[MCURLConnection alloc] initWithRequest:self delegate:self startImmediately:YES];
-	
+
 	if(_connection)
 		return YES;
 	else
@@ -267,15 +269,15 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 #pragma mark NSURLConnection delegate methods
 
 /*
- * CPURLConnection delegate methods (used by MCURLConnection as well) 
+ * CPURLConnection delegate methods (used by MCURLConnection as well)
  * For documentation of these methods, see Cappuccino docs
- */ 
+ */
 - (void)connection:(CPURLConnection)aConnection didFailWithError:(id)anError
 {
 	if(delegate)
 	{
 		error = anError;
-		[delegate requestDidFail:self];		
+		[delegate requestDidFail:self];
 	}
 	else
 	{
@@ -286,7 +288,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 - (void)connection:(CPURLConnection)aConnection didReceiveResponse:(CPHTTPURLResponse)aResponse
 {
 	_response = aResponse;
-	
+
 	if(![aResponse isKindOfClass:[CPHTTPURLResponse class]])
 	{
 		CPLog.warn("Expected a CPHTTPURLResponse, but got '" + [aResponse class] + "' instead. Status codes are probably not reliable.");
@@ -312,10 +314,10 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 			else
 				responseData = _responseData;
 		}
-		
+
 		[[CPNotificationCenter defaultCenter] postNotificationName:MCHTTPRequestDidFinishNotificationName
 		 													object:self];
-		
+
 		if(delegate)
 		{
 			[delegate requestDidFinish:self];
@@ -340,7 +342,7 @@ var MCHTTPRequestCachedDefaultTransformer = [MCJSONDataTransformer new];
 - (void)connection:(CPURLConnection)connection progressDidChange:(float)progress
 {
 	[[CPNotificationCenter defaultCenter] postNotificationName:MCHTTPRequestDidChangeProgressNotificationName
-	 													object:self 
+	 													object:self
 													  userInfo:[CPDictionary dictionaryWithObject:progress forKey:@"progress"]];
 }
 
