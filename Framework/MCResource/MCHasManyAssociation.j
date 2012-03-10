@@ -404,7 +404,7 @@
 
     // Remove all objects (except unsaved ones)
     [_associatedObjects enumerateObjectsUsingBlock:function(associatedObject) {
-        if(![associatedObject isNewRecord])
+        if (![associatedObject isNewRecord])
         {
             [_associatedObjects removeObject:associatedObject];
             [_observableAssociatedObjectArray removeObject:associatedObject];
