@@ -130,6 +130,8 @@
 
 - (void)loadAssociatedObjects
 {
+    CPLog.trace("MCHasManyAssociation.loadAssociatedObjects");
+
     if(_nestedOnly)
         return;
 
@@ -382,6 +384,8 @@
 
 - (void)didLoadAssociatedObjects:(CPArray)associatedObjects
 {
+    CPLog.trace("MCHasManyAssociation.didLoadAssociatedObjects");
+
     _didLoadAssociatedObjects = YES;
     _isLoadingAssociatedObjects = NO;
 
@@ -427,7 +431,7 @@
 #pragma mark -
 #pragma mark Method proxying
 
-// We forward all array methods like "-objectsAtIndexes:", "-count", etc. to our 
+// We forward all array methods like "-objectsAtIndexes:", "-count", etc. to our
 // observable array, so that straight-forward bindings are possible, like:
 //
 // [someController bind:@"content" toObject:aResource withKeyPath:@"associationName" options:nil]
@@ -435,7 +439,7 @@
 - (id)forwardingTargetForSelector:(SEL)aSelector
 {
     if(![self respondsToSelector:aSelector] && [_observableAssociatedObjectArray respondsToSelector:aSelector])
-        return _observableAssociatedObjectArray;        
+        return _observableAssociatedObjectArray;
 
     return nil;
 }
