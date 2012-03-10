@@ -9,6 +9,6 @@
 
 + (void)initialize
 {
-  [self belongsTo:@"post"];
+	[self belongsTo:@"post"];
 }
 @end
