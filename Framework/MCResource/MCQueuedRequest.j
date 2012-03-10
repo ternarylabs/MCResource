@@ -6,7 +6,7 @@
 	CPSet			childRequests	@accessors;
 	BOOL			blocking		@accessors;
 	float			progress		@accessors(readonly);
-	
+
 	CPSet           finishedChildRequests;
 	id              originalDelegate;
 }
@@ -14,7 +14,7 @@
 // Constructor method for clean code (TM)
 + (MCQueuedRequest)queuedRequestWithRequest:(MCHTTPRequest)aRequest
 {
-	var queuedRequest = [[MCQueuedRequest alloc] initWithRequest:aRequest];	    
+	var queuedRequest = [[MCQueuedRequest alloc] initWithRequest:aRequest];
 	return queuedRequest;
 }
 
@@ -27,7 +27,7 @@
 		finishedChildRequests = [CPSet set];
 		[self setHTTPRequest:aRequest];
 	}
-	
+
 	return self;
 }
 
@@ -52,8 +52,8 @@
 	// completion of the original request
 	originalDelegate = [aRequest delegate];
 	[aRequest setDelegate:self];
-	
-	[[CPNotificationCenter defaultCenter] addObserver:self selector:@selector(requestDidChangeProgress:) name:MCHTTPRequestDidChangeProgressNotificationName object:aRequest];	
+
+	[[CPNotificationCenter defaultCenter] addObserver:self selector:@selector(requestDidChangeProgress:) name:MCHTTPRequestDidChangeProgressNotificationName object:aRequest];
 }
 
 // Add a child request to be executed upon completion of this request.
@@ -94,7 +94,7 @@
     	{
         	[[CPNotificationCenter defaultCenter] addObserver:self selector:@selector(childRequestDidFinish:) name:MCHTTPRequestDidFinishNotificationName object:[childRequest HTTPRequest]];
     		[[self queue] appendRequest:childRequest];
-    	}   
+    	}
     }
 }
 
@@ -119,6 +119,7 @@
 
 - (void)requestDidFail:(MCHTTPRequest)aRequest
 {
+	CPLog.trace("MCQueuedRequest.requestDidFail");
     [originalDelegate requestDidFail:self];
 }
 
@@ -129,12 +130,12 @@
 {
 	var description = @"<MCQueuedRequest 0x" + [CPString stringWithHash:[self UID]] + ": " + [HTTPRequest HTTPMethod] + " to " + [HTTPRequest URL] + ">",
 	    childRequestArray = [childRequests allObjects];
-	
+
 	for(var i = 0; i < [childRequestArray count]; i++)
 	{
 		description += @"\n\tChild request: " + [[childRequestArray objectAtIndex:i] description];
 	}
-	
+
 	return description;
 }
 

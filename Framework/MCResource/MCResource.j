@@ -318,22 +318,24 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	return self;
 }
 
+
 // This is a standard override for development purposes - if log output gets too messy, remove it.
 - (CPString)description
 {
-	var description = [self className] + ", ID " + [self identifier] + ": { \n",
+	var description = [self className] + ", ID " + [self identifier] + ": { ",
 		attributes = [[[self class] attributes] keyEnumerator],
 		attribute;
 
 	while(attribute = [attributes nextObject])
 	{
-		description += "\t " + attribute + " = '" + [self valueForKey:attribute] + "'\n";
+		description += attribute + " " //+ " = '" + [self valueForKey:attribute] + "'\n";
 	}
 
 	description += "};";
 
 	return description;
 }
+
 
 #pragma mark -
 #pragma mark Public methods
@@ -345,6 +347,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 + (MCResource)getResourceWithId:(int)anIdentifier ofClass:(Class)resourceClass
 {
+	CPLog.trace("MCResource.getResourceWithId");
+
     return [AllResourcesByTypeAndId valueForKeyPath:resourceClass + "." + anIdentifier];
 }
 
@@ -629,7 +633,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	}
 	else
 	{
-		// CPLog.warn(@"Resource " + self + " loaded without identifier key! This will likely cause problems in the future.");
+		CPLog.warn(@"Resource " + self + " loaded without identifier key! This will likely cause problems in the future.");
 	}
 
 	// And normal treatment for the other resources
@@ -1300,6 +1304,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 + (void)requestDidFail:(MCQueuedRequest)aRequest
 {
+	CPLog.trace("MCResource+requestDidFail");
+
 	var aDelegate = [classMethodDelegateDictionary objectForKey:aRequest],
 		aSelector = [classMethodSelectorDictionary objectForKey:aRequest];
 
@@ -1322,6 +1328,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 // Let's hope this doesn't get called to often ;)
 - (void)requestDidFail:(MCQueuedRequest)aRequest
 {
+	CPLog.trace("MCResource.requestDidFail");
+
 	var aDelegate = [_instanceMethodDelegateDictionary objectForKey:aRequest],
 		aSelector = [_instanceMethodSelectorDictionary objectForKey:aRequest];
 
@@ -1355,7 +1363,8 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
                         informativeTextWithFormat:MCResourceGeneralErrorDetailedMessage];
 
         [alert setDelegate:self];
-        [alert beginSheetModalForWindow:[CPApp mainWindow]];
+        if (CPApp)
+	        [alert beginSheetModalForWindow:[CPApp mainWindow]];
 
         _MCResourceErrorAlertIsShowing = YES;
     }
