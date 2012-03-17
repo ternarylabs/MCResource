@@ -678,6 +678,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 				case "BOOL":
 				    [self _setValue:!!aValue forKey:attributeName];
 				    break;
+				case "CPArray":
+				    [self _setValue:aValue forKey:attributeName];
+				    break;
 				default:
 				    var childClassAssociation = [[classAssociationsDictionary objectForKey:[self className]] objectForKey:attributeName];
 
