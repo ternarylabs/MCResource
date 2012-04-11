@@ -24,6 +24,7 @@ MCResourceAssociationAutosaveKey        = @"MCResourceAssociationAutosaveKey";
 MCResourceAssociationShallowKey         = @"MCResourceAssociationShallowKey";
 MCResourceAssociationNestedOnlyKey      = @"MCResourceAssociationNestedOnlyKey";
 MCResourceAssociationSortDescriptorsKey = @"MCResourceAssociationSortDescriptorsKey";
+MCResourceAssociationCustomURLKey       = @"MCResourceAssociationCustomURLKey";
 
 // These are all file-scoped
 var classAttributesDictionary = [CPDictionary dictionary];
@@ -140,6 +141,11 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     [self addAssociationWithName:aName class:MCBelongsToAssociation options:[CPDictionary dictionary]];
 }
 
++ (void)belongsTo:(CPString)aName options:(CPDictionary)options
+{
+    [self addAssociationWithName:aName class:MCBelongsToAssociation options:options];
+}
+
 + (void)addAssociationWithName:(CPString)aName class:(Class)associationClass options:(CPDictionary)options
 {
     var associatedObjectClass, autosave, shallow, isNestedOnly, sortDescriptors;
@@ -176,7 +182,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
     {
         isNestedOnly = NO;
     }
-
+        
+    customURL = [options objectForKey:MCResourceAssociationCustomURLKey];
+        
 	// Add the association to the class ivars
 	// Just as if you had typed "MCHas(One|Many)Association <name>" in the class declaration
 	class_addIvar(self, aName, [associationClass className]);
@@ -186,20 +194,22 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 	{
 		[classAssociationsDictionary setObject:[CPDictionary dictionary] forKey:[self className]];
 	}
-
-	var optionsDictionary = [CPDictionary dictionaryWithObjects:[associationClass,
-	                                                             associatedObjectClass,
-	                                                             autosave,
-	                                                             shallow,
-	                                                             isNestedOnly,
-	                                                             sortDescriptors]
-	                                                    forKeys:[MCResourceAssociationClassKey,
+	
+	var optionsDictionary = [CPDictionary dictionaryWithObjects:[associationClass, 
+	                                                             associatedObjectClass, 
+	                                                             autosave, 
+	                                                             shallow, 
+	                                                             isNestedOnly, 
+	                                                             sortDescriptors,
+	                                                             customURL]
+	                                                    forKeys:[MCResourceAssociationClassKey, 
 	                                                             MCResourceAssociationObjectClassKey,
-	                                                             MCResourceAssociationAutosaveKey,
-	                                                             MCResourceAssociationShallowKey,
-	                                                             MCResourceAssociationNestedOnlyKey,
-	                                                             MCResourceAssociationSortDescriptorsKey]];
-
+	                                                             MCResourceAssociationAutosaveKey, 
+	                                                             MCResourceAssociationShallowKey, 
+	                                                             MCResourceAssociationNestedOnlyKey, 
+	                                                             MCResourceAssociationSortDescriptorsKey,
+	                                                             MCResourceAssociationCustomURLKey]];
+	
 	[[classAssociationsDictionary objectForKey:[self className]] setObject:optionsDictionary forKey:aName];
 }
 
@@ -281,10 +291,16 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 			var shallow = [associationOptions objectForKey:MCResourceAssociationShallowKey];
 			var nestedOnly = [associationOptions objectForKey:MCResourceAssociationNestedOnlyKey];
 			var sortDescriptors = [associationOptions objectForKey:MCResourceAssociationSortDescriptorsKey];
+            var customURL = [associationOptions objectForKey:MCResourceAssociationCustomURLKey];
 
             [association setAutosaves:autosaves];
             [association setIsShallow:shallow];
             [association setNestedOnly:nestedOnly];
+            
+            if(customURL)
+            {
+                [association setCustomURL:customURL];
+            }
 
             if(associationTypeClass == MCHasManyAssociation && [sortDescriptors count] > 0)
             {
@@ -328,7 +344,12 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 	while(attribute = [attributes nextObject])
 	{
-		description += attribute + " " //+ " = '" + [self valueForKey:attribute] + "'\n";
+	    if([_associations containsKey:attribute])
+	        attributeDescription = [self associationForName:attribute];
+	    else
+	        attributeDescription = [self valueForKey:attribute];
+	        
+		description += [CPString stringWithFormat:@"\t %@ = '%@'\n", attribute, attributeDescription];
 	}
 
 	description += "};";
@@ -636,7 +657,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		CPLog.warn(@"Resource " + self + " loaded without identifier key! This will likely cause problems in the future.");
 	}
 
-	// And normal treatment for the other resources
+	// And normal treatment for the other keys
 	var	attributeEnumerator = [givenAttributes keyEnumerator],
 		attribute;
 
@@ -651,6 +672,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 		{
 			switch(attributeType)
 			{
+			    case "CPArray":
+                    [self _setValue:aValue forKey:attributeName];
+			        break;
 				case "CPString":
 					// Set null values as null values, not string representations of CPNull
 					if(!([aValue isKindOfClass:[CPNull class]] || (typeof aValue == 'String' && aValue.length == 0)))
@@ -678,9 +702,6 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 				case "BOOL":
 				    [self _setValue:!!aValue forKey:attributeName];
 				    break;
-				case "CPArray":
-				    [self _setValue:aValue forKey:attributeName];
-				    break;
 				default:
 				    var childClassAssociation = [[classAssociationsDictionary objectForKey:[self className]] objectForKey:attributeName];
 
@@ -694,14 +715,18 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
                             // Parse the array
                             var theHasManyAssociation = [_associations objectForKey:attributeName],
                                 childObjectDataEnumerator = [aValue objectEnumerator],
-                                childObjectData;
-
+                                childObjectData,
+                                initializedChildObjects = [];
+                            
                             while(childObjectData = [childObjectDataEnumerator nextObject])
                             {
                                 var childObj = [childClass new];
-                                [childObj setAttributes:[CPDictionary dictionaryWithObject:childObjectData forKey:[[childClass className] railsifiedString]]];
-                                [theHasManyAssociation addAssociatedObject:childObj];
+                                [childObj setAttributes:childObjectData];
+                                [childObj resourceDidLoad];
+                                [initializedChildObjects addObject:childObj];
                             }
+                            
+                            [theHasManyAssociation didLoadAssociatedObjects:initializedChildObjects];
 					    }
 					    else
 					    {
@@ -712,7 +737,9 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 							[self willChangeValueForKey:attributeName];
 							[[_associations objectForKey:attributeName] setAssociatedObject:childObj];
 							[self didChangeValueForKey:attributeName];
+                            [childObj resourceDidLoad];
 					    }
+
 					}
 					else if((childClass = objj_getClass(attributeType)) || (childClass = objj_getClass([attributeName cappifiedClass])))
 					{
@@ -750,7 +777,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 						}
 						else
 						{
-						    console.log("Klass: " + aValue + " " + [aValue className]);
+						    console.log("Class: " + aValue + " " + [aValue className]);
 							CPLog.warn(@"Don't know how to parse objects of class " + [attributeName cappifiedClass] + ". Only dictionary parsing into custom objects is supported.");
 						}
 					}
@@ -1366,8 +1393,7 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
                         informativeTextWithFormat:MCResourceGeneralErrorDetailedMessage];
 
         [alert setDelegate:self];
-        if (CPApp)
-	        [alert beginSheetModalForWindow:[CPApp mainWindow]];
+        [alert runModal];
 
         _MCResourceErrorAlertIsShowing = YES;
     }

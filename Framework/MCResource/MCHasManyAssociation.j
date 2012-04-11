@@ -8,8 +8,9 @@
 	id      _loadDelegate;
 	SEL     _loadSelector;
 	int     _unsavedAssociationCount;
-	CPArray sortDescriptors @accessors;
+	CPArray _sortDescriptors @accessors(setter=setSortDescriptors:);
 	CPArray _objectsToDelete;
+	CPURL   _customURL @accessors(setter=setCustomURL:);
 
 	_CPObservableArray _observableAssociatedObjectArray;
 }
@@ -27,6 +28,11 @@
     }
 
     return self;
+}
+
+- (CPString)description
+{
+	return [CPString stringWithFormat:@"<%@ 0x%@: \"%@\" on %@ (%d objects)>", class_getName(isa), [CPString stringWithHash:[self UID]], _associationName, [_parent className], [self count]];
 }
 
 #pragma mark -
@@ -53,6 +59,12 @@
     while(object = [objectEnumerator nextObject])
     {
         [self addAssociatedObjectInBatch:object];
+    }
+
+    // Re-sort if applicable
+    if(_sortDescriptors.length > 0)
+    {
+        [_observableAssociatedObjectArray sortUsingDescriptors:_sortDescriptors];
     }
 
     [_parent didChangeValueForKey:_associationName];
@@ -83,7 +95,10 @@
     [self addAssociatedObjectInBatch:anObject];
 
     // Re-sort if applicable
-    [_observableAssociatedObjectArray sortUsingDescriptors:sortDescriptors];
+    if(_sortDescriptors.length > 0)
+    {
+        [_observableAssociatedObjectArray sortUsingDescriptors:_sortDescriptors];
+    }
 
     [_parent didChangeValueForKey:_associationName];
 }
@@ -257,9 +272,15 @@
 
 - (MCQueuedRequest)_buildLoadRequest
 {
-    var target = [CPURL URLWithString:[_parent resourceURL] + '/' + [_associatedObjectClass _constructResourceURL]],
-	    request = [MCHTTPRequest requestTarget:target withMethod:@"GET" andDelegate:self],
+    var target = _customURL;
+    
+    if(!target)
+        target = [CPURL URLWithString:[_parent resourceURL] + '/' + [_associatedObjectClass _constructResourceURL]];
+    
+    var request = [MCHTTPRequest requestTarget:target withMethod:@"GET" andDelegate:self],
 	    queuedRequest = [MCQueuedRequest queuedRequestWithRequest:request];
+
+        
 
     _isLoadingAssociatedObjects = YES;
 
@@ -382,6 +403,8 @@
     [_parent didChangeValueForKey:_associationName];
 }
 
+// Will be called when associated objects were loaded either via -loadAssociatedObjects or
+// via MCResource-setAttributes: method in case of nested objects
 - (void)didLoadAssociatedObjects:(CPArray)associatedObjects
 {
     CPLog.trace("MCHasManyAssociation.didLoadAssociatedObjects");
@@ -425,7 +448,7 @@
 
 - (void)requestDidFail:(MCQueuedRequest)aRequest
 {
-    CPLog.error(self + @"Request did fail: " + aRequest);
+    CPLog.error(@"%@ – request did fail: %@", self, aRequest);
 }
 
 #pragma mark -
