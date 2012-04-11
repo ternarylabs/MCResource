@@ -933,12 +933,16 @@ var AllResourcesByTypeAndId = [CPDictionary dictionary];
 
 - (MCQueuedRequest)_buildSaveRequestWithURL:(CPURL)saveURL
 {
+	CPLog.trace("MCResource._buildSaveRequestWithURL");
+
 	// Construct a request
 	var target = [CPURL URLWithString:saveURL],
 	 	request = [MCHTTPRequest requestTarget:target withMethod:[self _methodForSaving] andDelegate:self];
 
 	// Pass in the model's data for saving
 	var savedAttributes = [self attributesForSave];
+
+	CPLog.debug("	savedAttributes:", savedAttributes);
 
 	// Don't need to save when nothing has changed and the record previously existed
 	if([self identifier] && !savedAttributes)

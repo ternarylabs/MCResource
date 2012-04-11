@@ -32,32 +32,32 @@
 {
 	if([data length] > 0 && ![data isEqualToString:@" "])
 	{
-		try 
+		try
 		{
 			var parsedObject = JSON.parse(data);
-			
-			if (parsedObject) 
+
+			if (parsedObject)
 			{
 				if(parsedObject.isa && [parsedObject isKindOfClass:[CPArray class]])
 				{
 					var returnArray = [CPArray new],
 						enumerator = [parsedObject objectEnumerator],
 						item;
-				
+
 					while(item = [enumerator nextObject])
 					{
 						[returnArray addObject:[CPDictionary dictionaryWithJSObject:item recursively:YES]];
 					}
-					
+
 					return returnArray;
 				}
 				else
 				{
-		        	return [CPDictionary dictionaryWithJSObject:parsedObject recursively:YES];					
+		        	return [CPDictionary dictionaryWithJSObject:parsedObject recursively:YES];
 				}
 		    }
 		}
-		catch (anyException) 
+		catch (anyException)
 		{
 		    throw [MCError errorWithDescription:@"Could not reverse transform the following data: '" + data + "'"];
 		}
@@ -68,27 +68,36 @@
 #pragma mark Internal Methods
 
 /*
- * This method recursively iterates through a CPDictionary and 
+ * This method recursively iterates through a CPDictionary and
  * saves all its values in a passed-in FormData object
- */ 
- 
+ */
+
 - (void)_fillFormData:(JSObject)aFormData withData:(CPDictionary)data prefix:(CPString)prefix
 {
 	var keyEnumerator = [data keyEnumerator],
 		currentKey;
-		
+
 	while(currentKey = [keyEnumerator nextObject])
 	{
 		var currentValue = [data valueForKey:currentKey];
-		
+
+		CPLog.trace("MCJSONDataTransformer._fillFormData");
+		CPLog.debug("	currentKey	:" + currentKey);
+		CPLog.debug("	currentValue:" + currentValue);
+
 		if(currentValue.isa && [currentValue isKindOfClass:[CPDate class]])
 		{
 		    currentValue = [currentValue ISO8601String];
 		}
-		
+
 		if(currentValue.isa && [currentValue isKindOfClass:[CPNull class]])
 		{
 		    currentValue = null;
+		}
+
+		if(currentValue.isa && [currentValue isKindOfClass:[CPArray class]])
+		{
+		    currentValue = [currentValue asJSONString];
 		}
 
 		// Recurse if neccessary
@@ -102,7 +111,7 @@
 			}
 			else
 			{
-				[self _fillFormData:aFormData withData:currentValue prefix:prefix + "[" + currentKey + "]"];	
+				[self _fillFormData:aFormData withData:currentValue prefix:prefix + "[" + currentKey + "]"];
 			}
 		}
 		else
